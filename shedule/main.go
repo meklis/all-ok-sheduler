@@ -171,7 +171,7 @@ func (s *Shedule) sendTaskResponse(taskId int, code int, response string) error 
 		"code":     code,
 		"response": response,
 	}
-	resp, err := req.Get(fmt.Sprintf("%v/shedule/get", s.conf.ApiUrl), params)
+	resp, err := req.Get(fmt.Sprintf("%v/shedule/update", s.conf.ApiUrl), params)
 	if err != nil {
 		return tracerr.Wrap(err)
 	} else if resp.Response().StatusCode != 200 {
