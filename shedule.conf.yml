@@ -1,0 +1,14 @@
+shedule:
+  count_runners: 2
+  check_time: 1s
+#URL will be formated - api_url + /shedule/get|shedule/update|method from task
+  api_url: http://api.loc
+  api_request_timeout: 120s
+
+logger:
+  console:
+    enabled: true
+    enable_color: false
+    log_level: 6
+    print_file: false
+
