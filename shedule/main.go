@@ -122,7 +122,7 @@ func (s *Shedule) runner(runnerNum int) {
 			s.lg.NoticeF("[Runner %v] received new task - id: %v, method: %v", runnerNum, task.ID, task.Method)
 			err, code, response := s.execTask(task)
 			if err != nil {
-				s.lg.Errorf("[Runner %v-%v] executor returned err: %v", tracerr.Sprint(err), task.ID)
+				s.lg.Errorf("[Runner %v-%v] executor returned err: %v", runnerNum, task.ID, tracerr.Sprint(err))
 				response = tracerr.Sprint(err)
 			} else if code != 0 {
 				s.lg.WarningF("[Runner %v-%v] task returned code %v with message %v", runnerNum, task.ID, code, response)
