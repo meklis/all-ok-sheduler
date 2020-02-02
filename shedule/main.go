@@ -21,11 +21,11 @@ type ApiResponse struct {
 }
 
 type SheduleTask struct {
-	ID        int               `json:"id"`
-	Generator int               `json:"generator"`
-	Method    string            `json:"method"`
-	Request   map[string]string `json:"request"`
-	Created   string            `json:"created"`
+	ID        int                    `json:"id"`
+	Generator int                    `json:"generator"`
+	Method    string                 `json:"method"`
+	Request   map[string]interface{} `json:"request"`
+	Created   string                 `json:"created"`
 }
 
 type SheduleConfig struct {
@@ -121,7 +121,6 @@ func (s *Shedule) runner(runnerNum int) {
 			err, code, response := s.execTask(task)
 			if err != nil {
 				s.lg.Errorf("[Runner %v-%v] executor returned err: %v", tracerr.Sprint(err), task.ID)
-				code = -1
 				response = tracerr.Sprint(err)
 			} else if code != 0 {
 				s.lg.WarningF("[Runner %v-%v] task returned code %v with message %v", runnerNum, task.ID, code, response)
@@ -140,13 +139,13 @@ func (s *Shedule) runner(runnerNum int) {
 }
 
 func (s *Shedule) execTask(task SheduleTask) (err error, code int, response string) {
-	//params := make(req.Param)
-	//for key, val := range task.Request {
-	//	s.lg.DebugF("[TaskExecutor %v] added parameter %v=%v to request", task.ID, key,val)
-	//	params[key] = val
-	//}
+	params := make(req.Param)
+	for key, val := range task.Request {
+		s.lg.DebugF("[TaskExecutor %v] added parameter %v=%v to request", task.ID, key, val)
+		params[key] = val
+	}
 	s.lg.DebugF("[TaskExecutor %v] exec method %v", task.ID, task.Method)
-	resp, err := req.Get(fmt.Sprintf("%v/%v", s.conf.ApiUrl, task.Method), task.Request)
+	resp, err := req.Get(fmt.Sprintf("%v/%v", s.conf.ApiUrl, task.Method), params)
 	jresp := ApiResponse{}
 	if err != nil {
 		return tracerr.Wrap(err), 0, ""
@@ -154,22 +153,26 @@ func (s *Shedule) execTask(task SheduleTask) (err error, code int, response stri
 		return fmt.Errorf("http err: %v - %v", resp.Response().StatusCode, resp.Response().Status), 0, ""
 	} else if err := resp.ToJSON(&jresp); err != nil {
 		return tracerr.Wrap(err), 0, ""
+	} else if jresp.Code != 0 {
+		return fmt.Errorf("%v", jresp.Error), jresp.Code, ""
 	} else {
 		respBody := ""
-		if bytes, err := json.Marshal(jresp.Data); err != nil {
-			return tracerr.Wrap(err), 0, ""
+		if bytes, err := json.Marshal(jresp); err != nil {
+			return tracerr.Wrap(err), 0, fmt.Sprintf("Error decode :%v", string(resp.Bytes()))
 		} else {
 			respBody = string(bytes)
 		}
+
 		return nil, jresp.Code, respBody
 	}
 }
 
 func (s *Shedule) sendTaskResponse(taskId int, code int, response string) error {
+	respJson, err := json.Marshal(response)
 	params := req.Param{
 		"id":       taskId,
 		"code":     code,
-		"response": response,
+		"response": string(respJson),
 	}
 	resp, err := req.Get(fmt.Sprintf("%v/shedule/update", s.conf.ApiUrl), params)
 	if err != nil {
