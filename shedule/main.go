@@ -59,6 +59,7 @@ func (s *Shedule) Run() {
 	s.lg.InfoF("[Initializer] start checker")
 	for {
 		time.Sleep(time.Duration(errCounter) * time.Second)
+		s.lg.InfoF("Get info from %v", fmt.Sprintf("%v/shedule/get", s.conf.ApiUrl))
 		resp, err := req.Get(fmt.Sprintf("%v/shedule/get", s.conf.ApiUrl))
 		if err != nil {
 			s.lg.Errorf("[Checker] error get job from % - err: %v", fmt.Sprintf("%v/get", s.conf.ApiUrl), err.Error())
@@ -90,6 +91,7 @@ func (s *Shedule) Run() {
 			}
 			s.lg.DebugF("[Checker] new task with id %v", task.ID)
 			s.channel <- task
+			continue
 		} else if jresp.Code == 204 {
 			time.Sleep(s.conf.CheckTime)
 			continue
@@ -148,16 +150,16 @@ func (s *Shedule) execTask(task SheduleTask) (err error, code int, response stri
 	resp, err := req.Get(fmt.Sprintf("%v/%v", s.conf.ApiUrl, task.Method), params)
 	jresp := ApiResponse{}
 	if err != nil {
-		return tracerr.Wrap(err), 0, ""
+		return tracerr.Wrap(err), -1, ""
 	} else if resp.Response().StatusCode != 200 {
 		return fmt.Errorf("http err: %v - %v", resp.Response().StatusCode, resp.Response().Status), 0, ""
 	} else if err := resp.ToJSON(&jresp); err != nil {
-		return tracerr.Wrap(err), 0, ""
+		return tracerr.Wrap(err), -1, ""
 	} else if jresp.Code != 0 {
 		return fmt.Errorf("%v", jresp.Error), jresp.Code, ""
 	} else {
 		respBody := ""
-		if bytes, err := json.Marshal(jresp); err != nil {
+		if bytes, err := json.Marshal(jresp.Data); err != nil {
 			return tracerr.Wrap(err), 0, fmt.Sprintf("Error decode :%v", string(resp.Bytes()))
 		} else {
 			respBody = string(bytes)

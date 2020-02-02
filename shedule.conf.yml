@@ -1,5 +1,5 @@
 shedule:
-  count_runners: 2
+  count_runners: 20
   check_time: 1s
 #URL will be formated - api_url + /shedule/get|shedule/update|method from task
   api_url: http://api.loc:8080
