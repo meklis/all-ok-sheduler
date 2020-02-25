@@ -6,6 +6,7 @@ import (
 	"github.com/imroc/req"
 	"github.com/meklis/http-snmpwalk-proxy/logger"
 	"github.com/ztrue/tracerr"
+	"strings"
 	"time"
 )
 
@@ -140,11 +141,23 @@ func (s *Shedule) runner(runnerNum int) {
 	}
 }
 
+func wrapToValue(val interface{}) string {
+	retVal := ""
+	switch val.(type) {
+	case float64:
+		retVal = strings.Trim(fmt.Sprintf("%f", val), "0")
+		retVal = strings.Trim(retVal, ".")
+	default:
+		retVal = fmt.Sprintf("%v", val)
+	}
+	return retVal
+}
+
 func (s *Shedule) execTask(task SheduleTask) (err error, code int, response string) {
 	params := make(req.Param)
 	for key, val := range task.Request {
 		s.lg.DebugF("[TaskExecutor %v] added parameter %v=%v to request", task.ID, key, val)
-		params[key] = val
+		params[key] = fmt.Sprintf("%v", wrapToValue(val))
 	}
 	s.lg.DebugF("[TaskExecutor %v] exec method %v", task.ID, task.Method)
 	resp, err := req.Get(fmt.Sprintf("%v/%v", s.conf.ApiUrl, task.Method), params)
